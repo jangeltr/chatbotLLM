@@ -24,7 +24,7 @@ def dividir_documentos(documents):
     if not documents:
         return []
     print("Dividiendo documentos en trozos optimizados...")
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
     chunks = text_splitter.split_documents(documents)
     print(f"Se crearon {len(chunks)} trozos de texto.")
     return chunks

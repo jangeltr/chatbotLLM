@@ -4,7 +4,7 @@ Esta es una App en Python que crea un chatbot que utiliza la AI para responder p
 Esta App funciona en Local, no utiliza las AI de la nube.
 
 # Requerimientos
-Hardware 
+Hardware
 Terjeta de Video GeForce 3070 con 16 RAM o superior
 
 Software
@@ -12,3 +12,13 @@ LM Studio ejecutando un LLM
 Developer Status: Iniciado
 
 Python 3.12.7
+
+# Ejecutar
+pip install -r requirements.txt
+
+python procesar_doctos.py
+
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# En el navegador
+index.html

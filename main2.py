@@ -53,9 +53,10 @@ base_retriever = db.as_retriever(
 )
 
 # MEJORA 2: Configurar el reranker para mantener más documentos relevantes
+# AJUSTE: Reducido a 4 documentos para evitar overflow de contexto
 compressor = FlashrankRerank(
     model="ms-marco-MultiBERT-L-12",
-    top_n=8  # Mantener los 8 documentos más relevantes después del reranking
+    top_n=4  # Reducido de 8 a 4 para caber en 4096 tokens de contexto
 )
 
 # LLM
@@ -86,47 +87,33 @@ Eres un experto en búsqueda de información. Tu tarea es reformular la pregunta
 rewrite_prompt = ChatPromptTemplate.from_template(rewrite_template)
 query_rewriter = rewrite_prompt | llm | StrOutputParser()
 
-# MEJORA 4: Prompt RAG mejorado con mejor estructura
-rag_template = """### ROL ###
-Eres el asistente virtual oficial del TecNM campus Tlajomulco. Tu función es proporcionar información precisa y útil basada ÚNICAMENTE en los documentos oficiales de la institución.
+# MEJORA 4: Prompt RAG más compacto para ahorrar tokens
+rag_template = """Eres el asistente del TecNM Tlajomulco. Responde usando SOLO el contexto proporcionado.
 
-### CONTEXTO RECUPERADO ###
+CONTEXTO:
 {context}
 
-### PREGUNTA DEL USUARIO ###
-{question}
+PREGUNTA: {question}
 
-### INSTRUCCIONES DE RESPUESTA ###
-1. **Analiza cuidadosamente** todo el contexto antes de responder
-2. **Busca información directa:** Si preguntan por un cargo (director, jefe, coordinador), busca el nombre de la persona que ocupa ese puesto específico
-3. **Considera sinónimos:** "directora" = "director", "jefa" = "jefe", "encargado" = "coordinador", etc.
-4. **Sé específico:** Si encuentras la información, cita el cargo exacto y el nombre completo
-5. **Estructura jerárquica:** Directora > Subdirectores > Coordinadores > Jefes de departamento
-6. **Si NO encuentras información:** Di claramente "No encontré esa información específica en los documentos disponibles"
+INSTRUCCIONES:
+- Si preguntan por un cargo, busca el nombre de la persona
+- "directora"="director", "jefa"="jefe", "encargado"="coordinador"
+- Sé específico y directo
+- Si no encuentras info, di "No encontré esa información"
 
-### FORMATO DE RESPUESTA ###
-- Sé conciso y directo
-- Usa bullet points si hay múltiples datos
-- Cita el cargo oficial exacto
-- Si hay información complementaria relevante, inclúyela
-
-### RESPUESTA ###"""
+RESPUESTA:"""
 
 rag_prompt = ChatPromptTemplate.from_template(rag_template)
 
 # ==================== FUNCIONES AUXILIARES ====================
 
 def format_docs(docs):
-    """Formatea documentos con información de fuente"""
+    """Formatea documentos de forma compacta para ahorrar tokens"""
+    # Formato más compacto sin encabezados largos
     formatted = []
     for i, doc in enumerate(docs, 1):
-        source = os.path.basename(doc.metadata.get("source", "N/A"))
-        page = doc.metadata.get("page", "N/A")
-        formatted.append(
-            f"--- Documento {i} (Fuente: {source}, Página: {page}) ---\n"
-            f"{doc.page_content}\n"
-        )
-    return "\n".join(formatted)
+        formatted.append(f"[Doc {i}] {doc.page_content}")
+    return "\n\n".join(formatted)
 
 def retrieve_and_rerank(input_dict):
     """
