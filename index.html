@@ -1,0 +1,24 @@
+<!-- Contenedor del Botón y la Ventana de Chat -->
+<div id="chat-container">
+    <!-- Botón para abrir/cerrar el chat -->
+    <button id="chat-toggle-button">💬</button>
+
+    <!-- Ventana de Chat (inicialmente oculta) -->
+    <div id="chat-window" class="hidden">
+        <div id="chat-header">
+            Asistente Virtual Escolar
+        </div>
+        <div id="chat-messages">
+            <div class="message bot">¡Hola! Soy el asistente virtual. ¿En qué puedo ayudarte?</div>
+        </div>
+        <div id="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Escribe tu pregunta aquí...">
+            <button id="chat-send-button">Enviar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Enlazar el archivo JavaScript -->
+<script src="chat-widget.js"></script>
+<!-- Enlazar el archivo CSS -->
+<link rel="stylesheet" href="chat-widget.css">
