@@ -10,6 +10,9 @@ Terjeta de Video GeForce 3070 con 16 RAM o superior
 Software
 LM Studio ejecutando un LLM
 Developer Status: Iniciado
+Los modelos con los que yo probe la App
+<img width="733" height="305" alt="image" src="https://github.com/user-attachments/assets/449cff25-8a3e-4e78-8309-a3b19f21f4ee" />
+
 
 Python 3.12.7
 
