@@ -28,14 +28,12 @@ app.add_middleware(
 DB_FAISS_PATH = 'vectorstore/db_faiss'
 EMBEDDING_MODEL = 'sentence-transformers/paraphrase-multilingual-mpnet-base-v2'
 
-# Inicializar embeddings
 embeddings = HuggingFaceEmbeddings(
     model_name=EMBEDDING_MODEL,
     model_kwargs={'device': 'cpu'},
     encode_kwargs={'normalize_embeddings': True}
 )
 
-# Cargar base de datos vectorial
 db = FAISS.load_local(
     DB_FAISS_PATH, 
     embeddings, 
@@ -43,104 +41,108 @@ db = FAISS.load_local(
 )
 
 # ==================== RETRIEVER Y RERANKER ====================
-# MEJORA 1: Aumentar k para recuperar más documentos antes del reranking
+# 🔥 MEJORA: Recuperar más documentos para análisis
 base_retriever = db.as_retriever(
     search_type="similarity",
     search_kwargs={
-        'k': 20,  # Aumentado de 10 a 20
-        'fetch_k': 50  # Buscar más candidatos antes de filtrar
+        'k': 30,  # Aumentado para tener más opciones
+        'fetch_k': 100  # Pool más grande de candidatos
     }
 )
 
-# MEJORA 2: Configurar el reranker para mantener más documentos relevantes
-# AJUSTE: Reducido a 4 documentos para evitar overflow de contexto
+# 🔥 MEJORA: Mantener más documentos después del reranking
 compressor = FlashrankRerank(
     model="ms-marco-MultiBERT-L-12",
-    top_n=4  # Reducido de 8 a 4 para caber en 4096 tokens de contexto
+    top_n=8  # Aumentado a 8 para tener mejor contexto
 )
 
-# LLM
 llm = ChatOpenAI(
     base_url="http://localhost:1234/v1", 
     api_key="not-needed", 
-    temperature=0.2,  # Aumentado ligeramente para respuestas más naturales
+    temperature=0.1,  # Más determinista
     callbacks=[StreamingStdOutCallbackHandler()]
 )
 
 # ==================== PROMPTS MEJORADOS ====================
 
-# MEJORA 3: Prompt de reescritura más específico
-rewrite_template = """### INSTRUCCIÓN ###
-Eres un experto en búsqueda de información. Tu tarea es reformular la pregunta del usuario para encontrar información específica en documentos del TecNM campus Tlajomulco.
+# 🔥 MEJORA CRÍTICA: Prompt RAG ultra-específico
+rag_template = """Eres el asistente oficial del TecNM Tlajomulco. Responde ÚNICAMENTE con información del CONTEXTO proporcionado.
 
-**REGLAS IMPORTANTES:**
-1. Si preguntan por una persona (director, jefe, coordinador, etc.), reformula como: "nombre [CARGO] [ÁREA]"
-2. Si preguntan por un proceso o trámite, incluye palabras clave relacionadas
-3. Mantén la pregunta concisa y enfocada
-4. Expande sinónimos y términos relacionados
-
-### PREGUNTA ORIGINAL ###
-{question}
-
-### PREGUNTA OPTIMIZADA PARA BÚSQUEDA ###"""
-
-rewrite_prompt = ChatPromptTemplate.from_template(rewrite_template)
-query_rewriter = rewrite_prompt | llm | StrOutputParser()
-
-# MEJORA 4: Prompt RAG más compacto para ahorrar tokens
-rag_template = """Eres el asistente del TecNM Tlajomulco. Responde usando SOLO el contexto proporcionado.
-
-CONTEXTO:
+📋 CONTEXTO:
 {context}
 
-PREGUNTA: {question}
+❓ PREGUNTA: {question}
 
-INSTRUCCIONES:
-- Si preguntan por un cargo, busca el nombre de la persona
-- "directora"="director", "jefa"="jefe", "encargado"="coordinador"
-- Sé específico y directo
-- Si no encuentras info, di "No encontré esa información"
+🎯 INSTRUCCIONES CRÍTICAS:
+1. Si preguntan por un CARGO (director, jefe, coordinador):
+   - Busca EXACTAMENTE ese cargo en el contexto
+   - Ignora cargos similares (director ≠ subdirector, jefe ≠ coordinador)
+   - Formato: "[NOMBRE COMPLETO] es [CARGO EXACTO]"
 
-RESPUESTA:"""
+2. DISTINGUIR CARGOS:
+   - Director(a) ≠ Subdirector(a)
+   - Jefe(a) ≠ Coordinador(a) ≠ Encargado(a)
+   - Lee cuidadosamente el cargo exacto antes de responder
+
+3. Si el contexto tiene el cargo exacto → Da el nombre
+4. Si NO está el cargo exacto → "No encontré información sobre [CARGO] en los documentos"
+5. NUNCA inventes información
+6. NUNCA des un cargo diferente al solicitado
+
+RESPUESTA (directa y específica):"""
 
 rag_prompt = ChatPromptTemplate.from_template(rag_template)
 
 # ==================== FUNCIONES AUXILIARES ====================
 
 def format_docs(docs):
-    """Formatea documentos de forma compacta para ahorrar tokens"""
-    # Formato más compacto sin encabezados largos
+    """Formato mejorado con numeración clara y metadata"""
     formatted = []
     for i, doc in enumerate(docs, 1):
-        formatted.append(f"[Doc {i}] {doc.page_content}")
-    return "\n\n".join(formatted)
+        source = os.path.basename(doc.metadata.get("source", "Desconocido"))
+        # Agregar metadatos para mejor contexto
+        formatted.append(f"[Documento {i} - Fuente: {source}]\n{doc.page_content}")
+    return "\n\n---\n\n".join(formatted)
+
+def prepare_search_query(question: str) -> str:
+    """Garantiza que las búsquedas incluyan el contexto del campus."""
+    cleaned = question.strip()
+    anchor_terms = [
+        "tecnm tlajomulco",
+        "tecnm campus tlajomulco",
+        "instituto tecnológico de tlajomulco",
+        "instituto tecnologico de tlajomulco",
+        "ittj"
+    ]
+    lower_cleaned = cleaned.lower()
+    if not any(term in lower_cleaned for term in anchor_terms):
+        cleaned = f"{cleaned} TecNM Campus Tlajomulco"
+    return cleaned
 
 def retrieve_and_rerank(input_dict):
-    """
-    MEJORA 5: Pipeline de recuperación mejorado con logging detallado
-    """
+    """Pipeline de recuperación con logging detallado"""
     question = input_dict["question"]
+    search_query = prepare_search_query(question)
     
-    # Paso 1: Reescribir la pregunta
-    rewritten_question = query_rewriter.invoke({"question": question})
-    print(f"\n{'='*60}")
-    print(f"[PREGUNTA ORIGINAL]: {question}")
-    print(f"[PREGUNTA REESCRITA]: {rewritten_question}")
+    print(f"\n{'='*70}")
+    print(f"📝 PREGUNTA ORIGINAL: {question}")
+    print(f"🔍 CONSULTA DE BÚSQUEDA: {search_query}")
     
-    # Paso 2: Búsqueda inicial amplia
-    documents = base_retriever.invoke(rewritten_question)
-    print(f"[DOCUMENTOS INICIALES]: {len(documents)} documentos recuperados")
+    # Paso 1: Búsqueda inicial
+    documents = base_retriever.invoke(search_query)
+    print(f"📚 DOCUMENTOS RECUPERADOS: {len(documents)}")
     
-    # Paso 3: Reranking
-    reranked_docs = compressor.compress_documents(documents, rewritten_question)
-    print(f"[DESPUÉS DE RERANKING]: {len(reranked_docs)} documentos relevantes")
+    # Paso 2: Reranking
+    reranked_docs = compressor.compress_documents(documents, search_query)
+    print(f"⭐ DESPUÉS DE RERANKING: {len(reranked_docs)} documentos relevantes")
     
-    # Debug: Mostrar snippet de los top 3 documentos
-    print("\n[TOP 3 DOCUMENTOS MÁS RELEVANTES]:")
-    for i, doc in enumerate(reranked_docs[:3], 1):
-        snippet = doc.page_content[:150].replace('\n', ' ')
-        print(f"  {i}. {snippet}...")
-    print('='*60 + '\n')
+    # 🔥 MEJORA: Mostrar más contexto en debug
+    print("\n🔝 TOP 5 DOCUMENTOS MÁS RELEVANTES:")
+    for i, doc in enumerate(reranked_docs[:5], 1):
+        snippet = doc.page_content[:200].replace('\n', ' ')
+        source = os.path.basename(doc.metadata.get("source", "N/A"))
+        print(f"  {i}. [{source}] {snippet}...")
+    print('='*70 + '\n')
     
     return {
         "context": format_docs(reranked_docs),
@@ -165,7 +167,7 @@ rag_chain = (
 
 GREETINGS = [
     "hola", "buenos días", "buenas tardes", "buenas noches", 
-    "qué tal", "hey", "saludos", "buen día"
+    "qué tal", "hey", "saludos", "buen día", "buenas"
 ]
 
 @app.post("/chat")
@@ -173,14 +175,14 @@ async def chatear(query: Query):
     user_prompt_cleaned = query.prompt.lower().strip()
     
     # Manejo de saludos
-    if any(greeting in user_prompt_cleaned for greeting in GREETINGS) and len(user_prompt_cleaned) < 20:
+    if any(greeting in user_prompt_cleaned for greeting in GREETINGS) and len(user_prompt_cleaned) < 25:
         return {
-            "respuesta": "¡Hola! Soy el asistente virtual del TecNM campus Tlajomulco. Puedo ayudarte con información sobre:\n- Normatividad institucional\n- Actividades escolares\n- Eventos\n- Contactos y directorio\n- Trámites académicos\n\n¿Qué necesitas saber?",
+            "respuesta": "¡Hola! 👋 Soy el asistente virtual del TecNM Tlajomulco.\n\nPuedo ayudarte con:\n✅ Directorio y contactos\n✅ Información de carreras\n✅ Trámites académicos\n✅ Servicio social y residencias\n✅ Normatividad institucional\n\n¿Qué necesitas saber?",
             "fuentes": []
         }
     
     try:
-        # Ejecutar el pipeline RAG completo
+        # 🔥 MEJORA: Ejecutar pipeline completo
         rag_output = retrieve_and_rerank({"question": query.prompt})
         respuesta = (rag_prompt | llm | StrOutputParser()).invoke(rag_output)
         
@@ -190,25 +192,28 @@ async def chatear(query: Query):
             for doc in rag_output["source_documents"]
         ))
         
-        print(f"\n[RESPUESTA GENERADA]: {respuesta[:200]}...")
-        print(f"[FUENTES]: {fuentes}\n")
+        print(f"\n✅ RESPUESTA: {respuesta[:300]}...")
+        print(f"📎 FUENTES: {fuentes}\n")
         
-        # MEJORA 6: Validación de respuesta mejorada
+        # 🔥 MEJORA: Validación más robusta
         respuesta_lower = respuesta.lower()
-        palabras_inseguridad = [
-            "no tengo esa información",
-            "no encontré información",
+        indicadores_no_info = [
+            "no encontré",
+            "no tengo",
             "no está disponible",
-            "no puedo proporcionar"
+            "no puedo proporcionar",
+            "no hay información",
+            "no se encuentra"
         ]
         
-        if any(palabra in respuesta_lower for palabra in palabras_inseguridad):
-            fuentes = []
+        tiene_info_valida = not any(ind in respuesta_lower for ind in indicadores_no_info)
+        es_respuesta_corta = len(respuesta.strip()) < 15
         
-        # Si la respuesta es muy corta, es probable que no haya información
-        if len(respuesta.strip()) < 20:
-            respuesta = "No encontré información específica sobre tu consulta en los documentos disponibles. Te recomiendo contactar directamente a Servicios Escolares o al departamento correspondiente."
-            fuentes = []
+        if not tiene_info_valida or es_respuesta_corta:
+            return {
+                "respuesta": "No encontré información específica sobre tu consulta en los documentos. Te recomiendo:\n• Verificar si usaste el término correcto\n• Contactar a Servicios Escolares\n• Revisar el sitio web oficial del TecNM Tlajomulco",
+                "fuentes": []
+            }
         
         return {
             "respuesta": respuesta,
@@ -216,9 +221,11 @@ async def chatear(query: Query):
         }
     
     except Exception as e:
-        print(f"[ERROR]: {str(e)}")
+        print(f"❌ ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
-            "respuesta": "Lo siento, hubo un error al procesar tu consulta. Por favor, intenta reformular tu pregunta.",
+            "respuesta": "Ocurrió un error al procesar tu consulta. Por favor, intenta reformular tu pregunta de otra manera.",
             "fuentes": []
         }
 
@@ -226,9 +233,10 @@ async def chatear(query: Query):
 async def root():
     return {
         "mensaje": "API del Chatbot TecNM Tlajomulco",
-        "version": "2.0",
+        "version": "3.0 - Mejorado",
+        "estado": "✅ Operativo",
         "endpoints": {
-            "/chat": "POST - Envía una pregunta al chatbot",
+            "/chat": "POST - Envía preguntas al chatbot",
             "/": "GET - Información de la API"
         }
     }
