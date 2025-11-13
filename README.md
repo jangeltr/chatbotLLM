@@ -1,6 +1,12 @@
 # chatbotLLM
 
-Esta es una App en Python que crea un chatbot que utiliza la AI para responder preguntas sobre temas del Tecnologico de Tlajomulco a docentes y estudiantes.
+Esta es una App en Python
+Tiene 3 funciones principales.
+procesar_doctos.py: Procesa todos los pdfs de la carpeta normatividad y genera una base de datos vectorial que se utiliza posteriormente para la busqueda de informacion.
+main.py: es el programa que se ejecuta como API y recibe las peticiones del chatbot.
+index.html, chat-widget.js, chat-widget.css son el chatbot que se ejecuta en el navegador.
+
+Descripcion: crea un chatbot que utiliza la AI para responder preguntas sobre temas del Tecnologico de Tlajomulco a docentes y estudiantes.
 Esta App funciona en Local, no utiliza las AI de la nube.
 
 # Requerimientos
