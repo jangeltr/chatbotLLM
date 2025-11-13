@@ -11,7 +11,7 @@ Software
 LM Studio ejecutando un LLM
 Developer Status: Iniciado
 
-Los modelos con los que yo probe la App
+Los modelos con los que yo probe la App:
 Yi 34B Chat Q4_K_S TheBloke 30B llama GGUF 18.20 GB
 Claude 3.7 Sonnet Reasoning Gemma3 12B Q8_0  reedmayhew 12B gemma3 GGUF 11.65 GB
 Llama 2 13B Chat Q3_K_S TheBloke 13B llama GGUF 5.27 GB
