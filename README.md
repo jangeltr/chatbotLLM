@@ -61,5 +61,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 index.html
 
 # Cada que hay cambios en los documentos pdf es necesario
+```bash
 rm -rf vectorstore
 python procesar_doctos.py
+```
