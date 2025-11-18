@@ -1,6 +1,6 @@
 # chatbotLLM
 
-Esta es una App en Python
+Esta es una App en Python.  
 Tiene 3 funciones principales:
 1. procesar_doctos.py: Procesa todos los pdfs de la carpeta normatividad y genera una base de datos vectorial que se utiliza posteriormente para la busqueda de informacion.
 2. main.py: es el programa que se ejecuta como API y recibe las peticiones del chatbot.
@@ -17,22 +17,17 @@ Software
 LM Studio ejecutando un LLM
 Developer Status: Iniciado
 
-Los modelos con los que yo probe la App:
+Python 3.12.7
 
-Yi 34B Chat Q4_K_S TheBloke 30B llama GGUF 18.20 GB
-
-Claude 3.7 Sonnet Reasoning Gemma3 12B Q8_0  reedmayhew 12B gemma3 GGUF 11.65 GB
-
-Llama 2 13B Chat Q3_K_S TheBloke 13B llama GGUF 5.27 GB
-
-Llama 3.3 70B Instruct Q4_K_S bartowski 70B llama GGUF 37.58 GB
-
-Llama 4 Scout 17B 16E Instruct Q3_K_S unsloth 17B llama4 GGUF 45.16 GB
+Los modelos con los que yo probe la App:  
+Yi 34B Chat Q4_K_S TheBloke 30B llama GGUF 18.20 GB  
+Claude 3.7 Sonnet Reasoning Gemma3 12B Q8_0  reedmayhew 12B gemma3 GGUF 11.65 GB  
+Llama 2 13B Chat Q3_K_S TheBloke 13B llama GGUF 5.27 GB  
+Llama 3.3 70B Instruct Q4_K_S bartowski 70B llama GGUF 37.58 GB  
+Llama 4 Scout 17B 16E Instruct Q3_K_S unsloth 17B llama4 GGUF 45.16 GB  
+El modelo a utilizar y el GPU offload dependeran de la tarjeta de video que se tenga
 
 <img width="733" height="305" alt="image" src="https://github.com/user-attachments/assets/449cff25-8a3e-4e78-8309-a3b19f21f4ee" />
-
-
-Python 3.12.7
 
 ## Ejecutar
 ```bash
