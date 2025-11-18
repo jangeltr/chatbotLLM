@@ -1,15 +1,15 @@
 # chatbotLLM
 
 Esta es una App en Python
-Tiene 3 funciones principales.
-procesar_doctos.py: Procesa todos los pdfs de la carpeta normatividad y genera una base de datos vectorial que se utiliza posteriormente para la busqueda de informacion.
-main.py: es el programa que se ejecuta como API y recibe las peticiones del chatbot.
-index.html, chat-widget.js, chat-widget.css son el chatbot que se ejecuta en el navegador.
+Tiene 3 funciones principales:
+1. procesar_doctos.py: Procesa todos los pdfs de la carpeta normatividad y genera una base de datos vectorial que se utiliza posteriormente para la busqueda de informacion.
+2. main.py: es el programa que se ejecuta como API y recibe las peticiones del chatbot.
+3. index.html, chat-widget.js, chat-widget.css son el chatbot que se ejecuta en el navegador.
 
 Descripcion: crea un chatbot que utiliza la AI para responder preguntas sobre temas del Tecnologico de Tlajomulco a docentes y estudiantes.
 Esta App funciona en Local, no utiliza las AI de la nube.
 
-# Requerimientos
+## Requerimientos
 Hardware
 Terjeta de Video GeForce 3070 con 16 RAM o superior
 
@@ -48,7 +48,7 @@ pip install -r requirements.txt
 4. Create New token
 5. Copy token
 
-### Pegar el token cuando lo solicite la siguiente linea
+#### Pegar el token cuando lo solicite la siguiente linea
 huggingface-cli login
 
 # Ejecutar
