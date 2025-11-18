@@ -34,25 +34,28 @@ Llama 4 Scout 17B 16E Instruct Q3_K_S unsloth 17B llama4 GGUF 45.16 GB
 
 Python 3.12.7
 
-# Ejecutar
+## Ejecutar
+```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
-# En: https://huggingface.co/
+## En: https://huggingface.co/
 1. log in or create account
 2. Settings
 3. Access Tokens
 4. Create New token
 5. Copy token
 
-# Pegar el token cuando lo solicite la siguiente linea
+### Pegar el token cuando lo solicite la siguiente linea
 huggingface-cli login
 
 # Ejecutar
+```bash
 python procesar_doctos.py
-
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 # En el navegador
 index.html
