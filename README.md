@@ -10,14 +10,13 @@ Descripcion: crea un chatbot que utiliza la AI para responder preguntas sobre te
 Esta App funciona en Local, no utiliza las AI de la nube.
 
 ## Requerimientos
-Hardware
-Terjeta de Video GeForce 3070 con 16 RAM o superior
+Hardware: Terjeta de Video GeForce 3070 con 16 RAM o superior
 
-Software
-LM Studio ejecutando un LLM
-Developer Status: Iniciado
+Software:
 
 Python 3.12.7
+
+LM Studio ejecutando un LLM, Developer Status: Iniciado
 
 Los modelos con los que yo probe la App:  
 Yi 34B Chat Q4_K_S TheBloke 30B llama GGUF 18.20 GB  
